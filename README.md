@@ -13,3 +13,4 @@ node server.js
 1. Use the MongoDB extension from the left-hand sidebar to connect to the local database instance — `mongodb://localhost:27017`.
 2. Open the `server.js` file to view the implementation.
 
+# connectai_backend
