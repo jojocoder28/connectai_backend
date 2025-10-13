@@ -1,4 +1,3 @@
-
 const express = require('express');
 const router = express.Router();
 const {
@@ -10,8 +9,9 @@ const {
     deletePost
 } = require('./post.controller');
 const authMiddleware = require('./auth.middleware');
+const upload = require('./upload.middleware');
 
-router.post('/', authMiddleware, createPost);
+router.post('/', authMiddleware, upload.single('media'), createPost);
 router.get('/:postId', getPostById);
 router.post('/like/:postId', authMiddleware, likePost);
 router.post('/comment/:postId', authMiddleware, commentPost);

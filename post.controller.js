@@ -1,19 +1,44 @@
 
 const { ObjectId } = require('mongodb');
 const { Database } = require('./database');
-const { databaseConfiguration } = require('./config');
+const { databaseConfiguration, cloudinaryConfiguration } = require('./config');
+const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
+
+cloudinary.config(cloudinaryConfiguration);
 
 const { databaseName } = databaseConfiguration;
 const postsCollection = Database.connection.db(databaseName).collection('posts');
 
 const createPost = async (req, res) => {
     try {
-        const { text, media, tags, location } = req.body;
+        const { text, tags, location } = req.body;
         const authorID = req.user.userId;
+        let mediaUrl = null;
+
+        if (req.file) {
+            const streamUpload = (req) => {
+                return new Promise((resolve, reject) => {
+                    const stream = cloudinary.uploader.upload_stream(
+                        (error, result) => {
+                            if (result) {
+                                resolve(result);
+                            } else {
+                                reject(error);
+                            }
+                        }
+                    );
+                    streamifier.createReadStream(req.file.buffer).pipe(stream);
+                });
+            };
+
+            const result = await streamUpload(req);
+            mediaUrl = result.secure_url;
+        }
 
         const newPost = {
             text,
-            media,
+            media: mediaUrl,
             authorID: new ObjectId(authorID),
             tags: tags || [],
             location: location || null,
