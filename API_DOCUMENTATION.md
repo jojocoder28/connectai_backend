@@ -150,16 +150,12 @@ Creates a new post.
 
 **Authentication:** Required
 
-**Request Body:**
+**Request Body:** `multipart/form-data`
 
-```json
-{
-  "text": "string",
-  "media": "string (optional)",
-  "tags": "array (optional)",
-  "location": "string (optional)"
-}
-```
+*   `text` (string): The text content of the post.
+*   `media` (file, optional): An image or video file.
+*   `tags` (array, optional): A list of tags.
+*   `location` (string, optional): The location where the post was created.
 
 **Response:**
 
