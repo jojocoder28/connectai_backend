@@ -48,13 +48,13 @@ const createPost = async (req, res) => {
 
         const newPost = {
             text,
-            media: mediaUrl,
             authorID: new ObjectId(authorID),
             tags: tagsArray,
             location: location || null,
             likes: [],
             comments: [],
-            timestamp: new Date()
+            timestamp: new Date(),
+            ...(mediaUrl && { media: mediaUrl })
         };
 
         const result = await postsCollection.insertOne(newPost);
