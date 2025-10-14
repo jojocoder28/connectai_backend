@@ -20,6 +20,10 @@ const userSchema = {
                 bsonType: "string",
                 description: "must be a string and is required"
             },
+            bio: {
+                bsonType: "string",
+                description: "must be a string and is not required"
+            },
             dob: {
                 bsonType: "date",
                 description: "must be a date and is required"
