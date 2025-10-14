@@ -14,17 +14,18 @@ const collection = database.collection(collectionName);
 
 const registerUser = async (req, res) => {
     try {
-        const { name, email, password, dob, gender } = req.body;
+        const { name, email, password, dob, gender, username } = req.body;
 
-        const existingUser = await collection.findOne({ email });
+        const existingUser = await collection.findOne({ $or: [{ email }, { username }] });
         if (existingUser) {
-            return res.status(400).send('User already exists');
+            return res.status(400).send('User with that email or username already exists');
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = {
             name,
+            username,
             email,
             password: hashedPassword,
             dob: new Date(dob),
@@ -62,6 +63,7 @@ const loginUser = async (req, res) => {
         const userProfile = {
             _id: user._id,
             name: user.name,
+            username: user.username,
             email: user.email,
             dob: user.dob,
             gender: user.gender,
@@ -106,6 +108,22 @@ const getUserById = async (req, res) => {
         res.status(500).send(error.message);
     }
 };
+
+const getUserByUsername = async (req, res) => {
+    try {
+        const username = req.params.username;
+        const user = await collection.findOne({ username });
+
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        res.status(200).send(user);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 
 const updateUserProfile = async (req, res) => {
     try {
@@ -304,6 +322,7 @@ module.exports = {
     loginUser,
     getUserProfile,
     getUserById,
+    getUserByUsername,
     updateUserProfile,
     followUser,
     unfollowUser,

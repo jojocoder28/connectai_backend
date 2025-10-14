@@ -46,10 +46,22 @@ const createPost = async (req, res) => {
             }
         }
 
+        const mentions = [];
+        const mentionRegex = /@(\w+)/g;
+        let match;
+        while ((match = mentionRegex.exec(text)) !== null) {
+            const username = match[1];
+            const user = await usersCollection.findOne({ username });
+            if (user) {
+                mentions.push(user._id);
+            }
+        }
+
         const newPost = {
             text,
             authorID: new ObjectId(authorID),
             tags: tagsArray,
+            mentions,
             location: location || null,
             likes: [],
             comments: [],
@@ -93,6 +105,20 @@ const getPostsByUserId = async (req, res) => {
     try {
         const { userId } = req.params;
         const posts = await postsCollection.find({ authorID: new ObjectId(userId) }).toArray();
+        res.status(200).send(posts);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+const getPostsByUsername = async (req, res) => {
+    try {
+        const { username } = req.params;
+        const user = await usersCollection.findOne({ username });
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+        const posts = await postsCollection.find({ authorID: user._id }).toArray();
         res.status(200).send(posts);
     } catch (error) {
         res.status(500).send(error.message);
@@ -249,6 +275,7 @@ module.exports = {
     createPost,
     getPostById,
     getPostsByUserId,
+    getPostsByUsername,
     likePost,
     commentPost,
     sharePost,

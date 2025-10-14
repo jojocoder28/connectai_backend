@@ -2,9 +2,13 @@
 const userSchema = {
     $jsonSchema: {
         bsonType: "object",
-        required: ["name", "email", "password", "dob", "gender"],
+        required: ["name", "email", "password", "dob", "gender", "username"],
         properties: {
             name: {
+                bsonType: "string",
+                description: "must be a string and is required"
+            },
+            username: {
                 bsonType: "string",
                 description: "must be a string and is required"
             },

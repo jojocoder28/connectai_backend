@@ -1,4 +1,3 @@
-
 const postSchema = {
     $jsonSchema: {
         bsonType: "object",
@@ -20,6 +19,12 @@ const postSchema = {
                 bsonType: "array",
                 items: {
                     bsonType: "string"
+                }
+            },
+            mentions: {
+                bsonType: "array",
+                items: {
+                    bsonType: "objectId"
                 }
             },
             likes: {
