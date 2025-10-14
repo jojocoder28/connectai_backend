@@ -2,10 +2,13 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
+const cloudinary = require('cloudinary').v2;
 
 const { Database } = require('./database');
-const { databaseConfiguration } = require('./config');
+const { databaseConfiguration, cloudinaryConfig } = require('./config');
 const { JWT_SECRET } = require('./config');
+
+cloudinary.config(cloudinaryConfig);
 
 const { databaseName, collectionName } = databaseConfiguration;
 const connection = Database.connection;
@@ -128,13 +131,17 @@ const getUserByUsername = async (req, res) => {
 const updateUserProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { name, bio, avatar, interests } = req.body;
+        const { name, bio, interests } = req.body;
 
         const updatedFields = {};
         if (name) updatedFields.name = name;
         if (bio) updatedFields.bio = bio;
-        if (avatar) updatedFields.avatar = avatar;
         if (interests) updatedFields.interests = interests;
+
+        if (req.file) {
+            const result = await cloudinary.uploader.upload(req.file.path);
+            updatedFields.avatar = result.secure_url;
+        }
 
         const result = await collection.updateOne(
             { _id: new ObjectId(userId) },

@@ -1,6 +1,6 @@
-
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const {
     registerUser,
     loginUser,
@@ -18,13 +18,15 @@ const {
 } = require('./user.controller');
 const authMiddleware = require('./auth.middleware');
 
+const upload = multer({ dest: 'uploads/' });
+
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/profile', authMiddleware, getUserProfile);
 router.get('/search', authMiddleware, searchUsersByName);
 router.get('/:id', authMiddleware, getUserById);
 router.get('/username/:username', authMiddleware, getUserByUsername);
-router.put('/profile', authMiddleware, updateUserProfile);
+router.put('/profile', authMiddleware, upload.single('avatar'), updateUserProfile);
 router.post('/follow/:followId', authMiddleware, followUser);
 router.post('/unfollow/:unfollowId', authMiddleware, unfollowUser);
 router.put('/mood', authMiddleware, setUserMood);
