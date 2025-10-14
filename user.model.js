@@ -24,6 +24,10 @@ const userSchema = {
                 bsonType: "string",
                 description: "must be a string and is not required"
             },
+            avatar: {
+                bsonType: "string",
+                description: "must be a string and is not required"
+            },
             dob: {
                 bsonType: "date",
                 description: "must be a date and is required"
