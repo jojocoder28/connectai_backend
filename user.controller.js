@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { ObjectId } = require('mongodb');
 const cloudinary = require('cloudinary').v2;
+const streamifier = require('streamifier');
 
 const { Database } = require('./database');
 const { databaseConfiguration, cloudinaryConfig } = require('./config');
@@ -132,27 +133,37 @@ const updateUserProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
         const { name, bio, interests } = req.body;
-
         const updatedFields = {};
         if (name) updatedFields.name = name;
         if (bio) updatedFields.bio = bio;
         if (interests) updatedFields.interests = interests;
 
+        const updateUser = async (fields) => {
+            const result = await collection.updateOne(
+                { _id: new ObjectId(userId) },
+                { $set: fields }
+            );
+            if (result.matchedCount === 0) {
+                return res.status(404).send('User not found');
+            }
+            res.status(200).send('User profile updated successfully');
+        };
+
         if (req.file) {
-            const result = await cloudinary.uploader.upload(req.file.path);
-            updatedFields.avatar = result.secure_url;
+            const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'avatars' },
+                (error, result) => {
+                    if (error) {
+                        return res.status(500).send('Error uploading to Cloudinary');
+                    }
+                    updatedFields.avatar = result.secure_url;
+                    updateUser(updatedFields);
+                }
+            );
+            streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+        } else {
+            updateUser(updatedFields);
         }
-
-        const result = await collection.updateOne(
-            { _id: new ObjectId(userId) },
-            { $set: updatedFields }
-        );
-
-        if (result.matchedCount === 0) {
-            return res.status(404).send('User not found');
-        }
-
-        res.status(200).send('User profile updated successfully');
     } catch (error) {
         res.status(500).send(error.message);
     }
