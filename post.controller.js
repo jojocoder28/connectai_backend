@@ -9,6 +9,7 @@ cloudinary.config(cloudinaryConfiguration);
 
 const { databaseName } = databaseConfiguration;
 const postsCollection = Database.connection.db(databaseName).collection('posts');
+const usersCollection = Database.connection.db(databaseName).collection('users');
 
 const createPost = async (req, res) => {
     try {
@@ -182,11 +183,50 @@ const deletePost = async (req, res) => {
     }
 };
 
+const getFeed = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const currentUser = await usersCollection.findOne({ _id: new ObjectId(userId) });
+
+        if (!currentUser) {
+            return res.status(404).send('User not found');
+        }
+
+        const following = currentUser.following || [];
+        const friends = currentUser.friends || [];
+        const authors = [...new Set([...following, ...friends, new ObjectId(userId)].map(id => id.toString()))].map(id => new ObjectId(id));
+
+        const userInterests = currentUser.interests || [];
+
+        const feedPosts = await postsCollection.find({ authorID: { $in: authors } }).toArray();
+
+        const scoredPosts = feedPosts.map(post => {
+            let interestScore = 0;
+            if (post.tags && userInterests.length > 0) {
+                const matchingTags = post.tags.filter(tag => userInterests.includes(tag));
+                interestScore = matchingTags.length;
+            }
+
+            const recencyScore = new Date(post.timestamp).getTime();
+            const totalScore = (interestScore * 100000000000) + recencyScore;
+
+            return { ...post, score: totalScore };
+        });
+
+        const sortedFeed = scoredPosts.sort((a, b) => b.score - a.score);
+
+        res.status(200).send(sortedFeed);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 module.exports = {
     createPost,
     getPostById,
     likePost,
     commentPost,
     sharePost,
-    deletePost
+    deletePost,
+    getFeed
 };

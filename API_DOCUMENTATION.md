@@ -60,7 +60,8 @@ Logs in an existing user.
     "dob": "date",
     "gender": "string",
     "followers": "array (ObjectId)",
-    "following": "array (ObjectId)"
+    "following": "array (ObjectId)",
+    "friends": "array (ObjectId)"
   }
 }
 ```
@@ -141,6 +142,63 @@ Sets the mood of the currently authenticated user.
 **Response:**
 
 A success message.
+
+### `POST /friend-request/:userId`
+
+Sends a friend request to another user.
+
+**Authentication:** Required
+
+**URL Parameters:**
+
+*   `userId`: The ID of the user to send the friend request to.
+
+**Response:**
+
+A success message.
+
+### `PUT /friend-request/:userId`
+
+Responds to a friend request.
+
+**Authentication:** Required
+
+**URL Parameters:**
+
+*   `userId`: The ID of the user who sent the friend request.
+
+**Request Body:**
+
+```json
+{
+  "status": "string (accepted or rejected)"
+}
+```
+
+**Response:**
+
+A success message.
+
+### `GET /notifications`
+
+Retrieves pending friend requests for the current user.
+
+**Authentication:** Required
+
+**Response:**
+
+```json
+[
+  {
+    "status": "pending",
+    "sender": {
+        "_id": "string (ObjectId)",
+        "name": "string",
+        "email": "string"
+    }
+  }
+]
+```
 
 ## Post API (`/posts`)
 
@@ -244,3 +302,13 @@ Deletes a post.
 **Response:**
 
 A success message.
+
+### `GET /feed`
+
+Retrieves the user's personalized feed.
+
+**Authentication:** Required
+
+**Response:**
+
+An array of post objects sorted by relevance.

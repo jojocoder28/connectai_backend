@@ -30,7 +30,9 @@ const registerUser = async (req, res) => {
             dob: new Date(dob),
             gender,
             followers: [],
-            following: []
+            following: [],
+            friends: [],
+            friendRequests: []
         };
 
         const result = await collection.insertOne(newUser);
@@ -64,7 +66,8 @@ const loginUser = async (req, res) => {
             dob: user.dob,
             gender: user.gender,
             followers: user.followers,
-            following: user.following
+            following: user.following,
+            friends: user.friends
         };
 
 
@@ -173,6 +176,114 @@ const setUserMood = async (req, res) => {
     }
 };
 
+const sendFriendRequest = async (req, res) => {
+    try {
+        const senderId = req.user.userId;
+        const { userId: recipientId } = req.params;
+
+        // Check if the recipient exists
+        const recipient = await collection.findOne({ _id: new ObjectId(recipientId) });
+        if (!recipient) {
+            return res.status(404).send('Recipient not found');
+        }
+
+        // Check if a friend request has already been sent
+        const existingRequest = recipient.friendRequests.find(
+            (request) => request.userId.equals(new ObjectId(senderId))
+        );
+        if (existingRequest) {
+            return res.status(400).send('Friend request already sent');
+        }
+
+        // Add friend request to recipient
+        await collection.updateOne(
+            { _id: new ObjectId(recipientId) },
+            {
+                $push: {
+                    friendRequests: {
+                        userId: new ObjectId(senderId),
+                        status: 'pending'
+                    }
+                }
+            }
+        );
+
+        res.status(200).send('Friend request sent');
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+const respondToFriendRequest = async (req, res) => {
+    try {
+        const recipientId = req.user.userId;
+        const { userId: senderId } = req.params;
+        const { status } = req.body; // 'accepted' or 'rejected'
+
+        if (!['accepted', 'rejected'].includes(status)) {
+            return res.status(400).send('Invalid status');
+        }
+
+        // Remove the friend request
+        await collection.updateOne(
+            { _id: new ObjectId(recipientId) },
+            { $pull: { friendRequests: { userId: new ObjectId(senderId) } } }
+        );
+
+        if (status === 'accepted') {
+            // Add to friends list for both users
+            await collection.updateOne(
+                { _id: new ObjectId(recipientId) },
+                { $addToSet: { friends: new ObjectId(senderId) } }
+            );
+            await collection.updateOne(
+                { _id: new ObjectId(senderId) },
+                { $addToSet: { friends: new ObjectId(recipientId) } }
+            );
+        }
+
+        res.status(200).send(`Friend request ${status}`);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+const getNotifications = async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        
+        const notifications = await collection.aggregate([
+            { $match: { _id: new ObjectId(userId) } },
+            { $unwind: '$friendRequests' },
+            { $match: { 'friendRequests.status': 'pending' } },
+            { 
+                $lookup: {
+                    from: 'users',
+                    localField: 'friendRequests.userId',
+                    foreignField: '_id',
+                    as: 'senderInfo'
+                }
+            },
+            { $unwind: '$senderInfo' },
+            {
+                $project: {
+                    _id: 0,
+                    status: '$friendRequests.status',
+                    sender: {
+                        _id: '$senderInfo._id',
+                        name: '$senderInfo.name',
+                        email: '$senderInfo.email'
+                    }
+                }
+            }
+        ]).toArray();
+
+        res.status(200).send(notifications);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -180,5 +291,8 @@ module.exports = {
     updateUserProfile,
     followUser,
     unfollowUser,
-    setUserMood
+    setUserMood,
+    sendFriendRequest,
+    respondToFriendRequest,
+    getNotifications
 };

@@ -35,6 +35,28 @@ const userSchema = {
                 items: {
                     bsonType: "objectId"
                 }
+            },
+            friends: {
+                bsonType: "array",
+                items: {
+                    bsonType: "objectId"
+                }
+            },
+            friendRequests: {
+                bsonType: "array",
+                items: {
+                    bsonType: "object",
+                    required: ["userId", "status"],
+                    properties: {
+                        userId: {
+                            bsonType: "objectId"
+                        },
+                        status: {
+                            bsonType: "string",
+                            "enum": ["pending", "accepted", "rejected"]
+                        }
+                    }
+                }
             }
         }
     }

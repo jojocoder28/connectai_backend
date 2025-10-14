@@ -6,12 +6,14 @@ const {
     likePost,
     commentPost,
     sharePost,
-    deletePost
+    deletePost,
+    getFeed
 } = require('./post.controller');
 const authMiddleware = require('./auth.middleware');
 const upload = require('./upload.middleware');
 
 router.post('/', authMiddleware, upload.single('media'), createPost);
+router.get('/feed', authMiddleware, getFeed);
 router.get('/:postId', getPostById);
 router.post('/like/:postId', authMiddleware, likePost);
 router.post('/comment/:postId', authMiddleware, commentPost);
