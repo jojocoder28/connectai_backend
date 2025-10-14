@@ -317,6 +317,24 @@ const getNotifications = async (req, res) => {
     }
 };
 
+const searchUsersByName = async (req, res) => {
+    try {
+        const { name } = req.query;
+
+        if (!name) {
+            return res.status(400).send('Search query is required');
+        }
+
+        const regex = new RegExp(name, 'i');
+
+        const users = await collection.find({ name: regex }).toArray();
+
+        res.status(200).send(users);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -329,5 +347,6 @@ module.exports = {
     setUserMood,
     sendFriendRequest,
     respondToFriendRequest,
-    getNotifications
+    getNotifications,
+    searchUsersByName
 };
