@@ -80,6 +80,68 @@ const createPost = async (req, res) => {
     }
 };
 
+const updatePost = async (req, res) => {
+    try {
+        const { postId } = req.params;
+        const { text, tags, location } = req.body;
+        const userId = req.user.userId;
+
+        const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+
+        if (!post) {
+            return res.status(404).send('Post not found');
+        }
+
+        if (!post.authorID.equals(new ObjectId(userId))) {
+            return res.status(403).send('You are not authorized to edit this post');
+        }
+
+        const updatedFields = {};
+        if (text) {
+            updatedFields.text = text;
+            const mentions = [];
+            const mentionRegex = /@(\w+)/g;
+            let match;
+            while ((match = mentionRegex.exec(text)) !== null) {
+                const username = match[1];
+                const user = await usersCollection.findOne({ username });
+                if (user) {
+                    mentions.push(user._id);
+                }
+            }
+            updatedFields.mentions = mentions;
+        }
+
+        if (tags) {
+            let tagsArray = [];
+            if (Array.isArray(tags)) {
+                tagsArray = tags;
+            } else if (typeof tags === 'string') {
+                tagsArray = tags.split(',').map(tag => tag.trim());
+            }
+            updatedFields.tags = tagsArray;
+        }
+
+        if (location) {
+            updatedFields.location = location;
+        }
+
+        const result = await postsCollection.updateOne(
+            { _id: new ObjectId(postId) },
+            { $set: updatedFields }
+        );
+
+        if (result.matchedCount === 0) {
+            return res.status(404).send('Post not found');
+        }
+
+        res.status(200).send('Post updated successfully');
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+
 const getPostById = async (req, res) => {
     try {
         const { postId } = req.params;
@@ -273,6 +335,7 @@ const getFeed = async (req, res) => {
 
 module.exports = {
     createPost,
+    updatePost,
     getPostById,
     getPostsByUserId,
     getPostsByUsername,

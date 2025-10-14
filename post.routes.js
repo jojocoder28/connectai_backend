@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
     createPost,
+    updatePost,
     getPostById,
     getPostsByUserId,
     getPostsByUsername,
@@ -15,6 +16,7 @@ const authMiddleware = require('./auth.middleware');
 const upload = require('./upload.middleware');
 
 router.post('/', authMiddleware, upload.single('media'), createPost);
+router.put('/:postId', authMiddleware, updatePost);
 router.get('/feed', authMiddleware, getFeed);
 router.get('/:postId', getPostById);
 router.get('/user/:userId', getPostsByUserId);
