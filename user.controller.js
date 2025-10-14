@@ -92,6 +92,21 @@ const getUserProfile = async (req, res) => {
     }
 };
 
+const getUserById = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const user = await collection.findOne({ _id: new ObjectId(userId) });
+
+        if (!user) {
+            return res.status(404).send('User not found');
+        }
+
+        res.status(200).send(user);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
 const updateUserProfile = async (req, res) => {
     try {
         const userId = req.user.userId;
@@ -288,6 +303,7 @@ module.exports = {
     registerUser,
     loginUser,
     getUserProfile,
+    getUserById,
     updateUserProfile,
     followUser,
     unfollowUser,

@@ -5,6 +5,7 @@ const {
     registerUser,
     loginUser,
     getUserProfile,
+    getUserById,
     updateUserProfile,
     followUser,
     unfollowUser,
@@ -18,6 +19,7 @@ const authMiddleware = require('./auth.middleware');
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.get('/profile', authMiddleware, getUserProfile);
+router.get('/:id', authMiddleware, getUserById);
 router.put('/profile', authMiddleware, updateUserProfile);
 router.post('/follow/:followId', authMiddleware, followUser);
 router.post('/unfollow/:unfollowId', authMiddleware, unfollowUser);
