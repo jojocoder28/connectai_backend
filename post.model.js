@@ -16,6 +16,12 @@ const postSchema = {
                 bsonType: "objectId",
                 description: "must be an objectId and is required"
             },
+            tags: {
+                bsonType: "array",
+                items: {
+                    bsonType: "string"
+                }
+            },
             likes: {
                 bsonType: "array",
                 items: {

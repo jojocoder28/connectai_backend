@@ -37,11 +37,20 @@ const createPost = async (req, res) => {
             mediaUrl = result.secure_url;
         }
 
+        let tagsArray = [];
+        if (tags) {
+            if (Array.isArray(tags)) {
+                tagsArray = tags;
+            } else if (typeof tags === 'string') {
+                tagsArray = tags.split(',').map(tag => tag.trim());
+            }
+        }
+
         const newPost = {
             text,
             media: mediaUrl,
             authorID: new ObjectId(authorID),
-            tags: tags || [],
+            tags: tagsArray,
             location: location || null,
             likes: [],
             comments: [],
@@ -51,7 +60,11 @@ const createPost = async (req, res) => {
         const result = await postsCollection.insertOne(newPost);
         res.status(201).send({ postId: result.insertedId });
     } catch (error) {
-        res.status(500).send(error.message);
+        if (error.code === 121) { // MongoDB validation error code
+            res.status(400).send({ message: 'Post validation failed', details: error.errInfo.details });
+        } else {
+            res.status(500).send(error.message);
+        }
     }
 };
 
