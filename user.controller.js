@@ -76,6 +76,9 @@ const loginUser = async (req, res) => {
             friends: user.friends
         };
 
+        if (user.avatar) {
+            userProfile.avatar = user.avatar;
+        }
 
         res.status(200).send({ token, profile: userProfile });
     } catch (error) {
