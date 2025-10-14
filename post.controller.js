@@ -89,6 +89,17 @@ const getPostById = async (req, res) => {
     }
 };
 
+const getPostsByUserId = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const posts = await postsCollection.find({ authorID: new ObjectId(userId) }).toArray();
+        res.status(200).send(posts);
+    } catch (error) {
+        res.status(500).send(error.message);
+    }
+};
+
+
 const likePost = async (req, res) => {
     try {
         const { postId } = req.params;
@@ -237,6 +248,7 @@ const getFeed = async (req, res) => {
 module.exports = {
     createPost,
     getPostById,
+    getPostsByUserId,
     likePost,
     commentPost,
     sharePost,
