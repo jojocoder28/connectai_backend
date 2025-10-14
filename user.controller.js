@@ -288,11 +288,11 @@ const respondToFriendRequest = async (req, res) => {
             // Add to friends list for both users
             await collection.updateOne(
                 { _id: new ObjectId(recipientId) },
-                { $addToSet: { friends: new ObjectId(senderId) } }
+                { $addToSet: { friends: new ObjectId(senderId), following: new ObjectId(senderId) } }
             );
             await collection.updateOne(
                 { _id: new ObjectId(senderId) },
-                { $addToSet: { friends: new ObjectId(recipientId) } }
+                { $addToSet: { friends: new ObjectId(recipientId), followers: new ObjectId(recipientId) } }
             );
         }
 
