@@ -305,12 +305,12 @@ const respondToFriendRequest = async (req, res) => {
 const getNotifications = async (req, res) => {
     try {
         const userId = req.user.userId;
-        
+
         const notifications = await collection.aggregate([
             { $match: { _id: new ObjectId(userId) } },
-            { $unwind: '$friendRequests' },
+            { $unwind: { path: '$friendRequests', preserveNullAndEmptyArrays: true } },
             { $match: { 'friendRequests.status': 'pending' } },
-            { 
+            {
                 $lookup: {
                     from: 'users',
                     localField: 'friendRequests.userId',
@@ -318,7 +318,7 @@ const getNotifications = async (req, res) => {
                     as: 'senderInfo'
                 }
             },
-            { $unwind: '$senderInfo' },
+            { $unwind: { path: '$senderInfo', preserveNullAndEmptyArrays: true } },
             {
                 $project: {
                     _id: 0,
@@ -334,9 +334,11 @@ const getNotifications = async (req, res) => {
 
         res.status(200).send(notifications);
     } catch (error) {
+        console.error('Error fetching notifications:', error); // Add this
         res.status(500).send(error.message);
     }
 };
+
 
 const searchUsersByName = async (req, res) => {
     try {
