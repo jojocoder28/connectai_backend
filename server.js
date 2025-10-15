@@ -8,8 +8,8 @@ const { databaseConfiguration, serverConfiguration } = require('./config');
 // Schemas
 const userSchema = require('./user.model');
 const postSchema = require('./post.model');
-const messageSchema = require('./message.model');
-const conversationSchema = require('./conversation.model');
+// const messageSchema = require('./message.model');
+// const conversationSchema = require('./conversation.model');
 
 // Config
 const { uri, databaseName } = databaseConfiguration;
@@ -21,8 +21,8 @@ Database.connectToDatabase(uri).then(async databaseClient => {
   // Apply schema validation for all collections
   await applySchemaValidation(db, 'users', userSchema);
   await applySchemaValidation(db, 'posts', postSchema);
-  await applySchemaValidation(db, 'messages', messageSchema);
-  await applySchemaValidation(db, 'conversations', conversationSchema);
+  // await applySchemaValidation(db, 'messages', messageSchema);
+  // await applySchemaValidation(db, 'conversations', conversationSchema);
 
   const app = express();
   app.use(bodyParser.json());
@@ -31,14 +31,14 @@ Database.connectToDatabase(uri).then(async databaseClient => {
   // Import routes
   const userRoutes = require('./user.routes');
   const postRoutes = require('./post.routes');
-  const messageRoutes = require('./message.routes');
-  const conversationRoutes = require('./conversation.routes');
+  // const messageRoutes = require('./message.routes');
+  // const conversationRoutes = require('./conversation.routes');
 
   // Use routes
   app.use('/users', userRoutes);
   app.use('/posts', postRoutes);
-  app.use('/messages', messageRoutes);
-  app.use('/conversations', conversationRoutes);
+  // app.use('/messages', messageRoutes);
+  // app.use('/conversations', conversationRoutes);
 
   // Default route
   app.use('/', (_req, res) => res.status(200).send('API v1.0 is running...'));
