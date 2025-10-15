@@ -4,11 +4,10 @@ const { databaseConfiguration } = require('./config');
 
 const { databaseName } = databaseConfiguration;
 
-// ✅ Ensure we are using the same database connection instance
+// ✅ Use shared database connection
 const connection = Database.connection;
-
 if (!connection) {
-  console.error("❌ Database connection not initialized. Make sure Database.connectToDatabase() is called before using this controller.");
+  console.error("❌ Database connection not initialized. Call Database.connectToDatabase() first.");
 }
 
 const db = connection.db(databaseName);
@@ -17,21 +16,21 @@ const usersCollection = db.collection('users');
 
 /**
  * 📨 Create a new notification
- * Example Types: 'friend_request', 'follow', 'message'
+ * Types: 'friend_request', 'follow', 'message'
  * Body: { recipientId, type }
- * Auth Required: Yes (req.user.userId)
+ * Auth Required: Yes
  */
 const createNotification = async (req, res) => {
   try {
-    const senderId = req.user.userId;
+    const senderId = req.user?.userId;
     const { recipientId, type } = req.body;
 
-    if (!recipientId || !type) {
-      return res.status(400).send("recipientId and type are required");
+    if (!senderId || !recipientId || !type) {
+      return res.status(400).send("senderId, recipientId, and type are required");
     }
 
-    if (!ObjectId.isValid(recipientId)) {
-      return res.status(400).send("Invalid recipient ID");
+    if (!ObjectId.isValid(senderId) || !ObjectId.isValid(recipientId)) {
+      return res.status(400).send("Invalid sender or recipient ID format");
     }
 
     const newNotification = {
@@ -45,25 +44,25 @@ const createNotification = async (req, res) => {
     const result = await notificationsCollection.insertOne(newNotification);
 
     res.status(201).send({
-      message: "Notification created successfully",
+      message: "✅ Notification created successfully",
       notificationData: { _id: result.insertedId, ...newNotification },
     });
   } catch (error) {
-    console.error("Create Notification Error:", error);
+    console.error("❌ Create Notification Error:", error);
     res.status(500).send(error.message);
   }
 };
 
 /**
  * 🔔 Get all pending notifications for a user
- * Auth Required: Yes (req.user.userId)
+ * Auth Required: Yes
  */
 const getNotifications = async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.user?.userId;
 
-    if (!ObjectId.isValid(userId)) {
-      return res.status(400).send("Invalid user ID");
+    if (!userId || !ObjectId.isValid(userId)) {
+      return res.status(400).send("Invalid user ID format");
     }
 
     const notifications = await notificationsCollection.aggregate([
@@ -95,13 +94,13 @@ const getNotifications = async (req, res) => {
 
     res.status(200).send(notifications);
   } catch (error) {
-    console.error("Get Notifications Error:", error);
+    console.error("❌ Get Notifications Error:", error);
     res.status(500).send(error.message);
   }
 };
 
 /**
- * ✅ Mark a notification as read or accepted
+ * ✅ Update notification status (read / accepted / rejected)
  * Params: notificationId
  * Body: { status: 'read' | 'accepted' | 'rejected' }
  */
@@ -115,7 +114,7 @@ const updateNotificationStatus = async (req, res) => {
     }
 
     if (!['read', 'accepted', 'rejected'].includes(status)) {
-      return res.status(400).send("Invalid status");
+      return res.status(400).send("Invalid status type");
     }
 
     const result = await notificationsCollection.updateOne(
@@ -127,22 +126,23 @@ const updateNotificationStatus = async (req, res) => {
       return res.status(404).send("Notification not found");
     }
 
-    res.status(200).send(`Notification marked as ${status}`);
+    res.status(200).send(`✅ Notification marked as '${status}'`);
   } catch (error) {
-    console.error("Update Notification Error:", error);
+    console.error("❌ Update Notification Error:", error);
     res.status(500).send(error.message);
   }
 };
 
 /**
- * 🗑️ Delete a notification (optional)
+ * 🗑️ Delete a notification
+ * Params: notificationId
  */
 const deleteNotification = async (req, res) => {
   try {
     const { notificationId } = req.params;
 
     if (!ObjectId.isValid(notificationId)) {
-      return res.status(400).send("Invalid notification ID");
+      return res.status(400).send("Invalid notification ID format");
     }
 
     const result = await notificationsCollection.deleteOne({
@@ -153,9 +153,9 @@ const deleteNotification = async (req, res) => {
       return res.status(404).send("Notification not found");
     }
 
-    res.status(200).send("Notification deleted successfully");
+    res.status(200).send("🗑️ Notification deleted successfully");
   } catch (error) {
-    console.error("Delete Notification Error:", error);
+    console.error("❌ Delete Notification Error:", error);
     res.status(500).send(error.message);
   }
 };
