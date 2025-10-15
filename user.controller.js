@@ -304,45 +304,58 @@ const respondToFriendRequest = async (req, res) => {
 
 const getNotifications = async (req, res) => {
     try {
-        const userId = req.user.userId;
-
-        const user = await collection.findOne({ _id: new ObjectId(userId) });
-        if (!user) {
-            return res.status(404).send('User not found');
-        }
-
-        const notifications = await collection.aggregate([
-            { $match: { _id: new ObjectId(userId) } },
-            { $unwind: '$friendRequests' },
-            { $match: { 'friendRequests.status': 'pending' } },
-            {
-                $lookup: {
-                    from: 'users',
-                    localField: 'friendRequests.userId',
-                    foreignField: '_id',
-                    as: 'senderInfo'
-                }
-            },
-            { $unwind: '$senderInfo' },
-            {
-                $project: {
-                    _id: 0,
-                    status: '$friendRequests.status',
-                    sender: {
-                        _id: '$senderInfo._id',
-                        name: '$senderInfo.name',
-                        email: '$senderInfo.email'
-                    }
-                }
+      const userId = req.user?.userId;
+      console.log('User ID:', userId);
+  
+      if (!userId) {
+        return res.status(400).send('User ID missing');
+      }
+  
+      let queryId;
+      try {
+        queryId = new ObjectId(userId);
+      } catch {
+        // if not a valid ObjectId, treat as string
+        queryId = userId;
+      }
+  
+      const user = await collection.findOne({ _id: queryId });
+      if (!user) {
+        return res.status(404).send('User not found');
+      }
+  
+      const notifications = await collection.aggregate([
+        { $match: { _id: queryId } },
+        { $unwind: '$friendRequests' },
+        { $match: { 'friendRequests.status': 'pending' } },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'friendRequests.userId',
+            foreignField: '_id',
+            as: 'senderInfo'
+          }
+        },
+        { $unwind: '$senderInfo' },
+        {
+          $project: {
+            _id: 0,
+            status: '$friendRequests.status',
+            sender: {
+              _id: '$senderInfo._id',
+              name: '$senderInfo.name',
+              email: '$senderInfo.email'
             }
-        ]).toArray();
-
-        res.status(200).send(notifications);
+          }
+        }
+      ]).toArray();
+  
+      res.status(200).send(notifications);
     } catch (error) {
-        console.error('Error fetching notifications:', error);
-        res.status(500).send(error.message);
+      console.error('Error fetching notifications:', error);
+      res.status(500).send(error.message);
     }
-};
+  };
 
 
 const searchUsersByName = async (req, res) => {
