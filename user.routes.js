@@ -1,3 +1,4 @@
+
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -13,7 +14,6 @@ const {
     setUserMood,
     sendFriendRequest,
     respondToFriendRequest,
-    getNotifications,
     searchUsersByName
 } = require('./user.controller');
 const authMiddleware = require('./auth.middleware');
@@ -32,7 +32,6 @@ router.post('/follow/:followId', authMiddleware, followUser);
 router.post('/unfollow/:unfollowId', authMiddleware, unfollowUser);
 router.put('/mood', authMiddleware, setUserMood);
 router.post('/friend-request/:userId', authMiddleware, sendFriendRequest);
-router.put('/friend-request/:userId', authMiddleware, respondToFriendRequest);
-router.get('/notifications', authMiddleware, getNotifications);
+router.put('/friend-request/:notificationId', authMiddleware, respondToFriendRequest);
 
 module.exports = router;

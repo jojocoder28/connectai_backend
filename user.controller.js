@@ -15,6 +15,7 @@ const { databaseName, collectionName } = databaseConfiguration;
 const connection = Database.connection;
 const database = connection.db(databaseName);
 const collection = database.collection(collectionName);
+const notificationsCollection = database.collection('notifications');
 
 const registerUser = async (req, res) => {
     try {
@@ -36,8 +37,7 @@ const registerUser = async (req, res) => {
             gender,
             followers: [],
             following: [],
-            friends: [],
-            friendRequests: []
+            friends: []
         };
 
         const result = await collection.insertOne(newUser);
@@ -235,32 +235,28 @@ const sendFriendRequest = async (req, res) => {
         const senderId = req.user.userId;
         const { userId: recipientId } = req.params;
 
-        // Check if the recipient exists
         const recipient = await collection.findOne({ _id: new ObjectId(recipientId) });
         if (!recipient) {
             return res.status(404).send('Recipient not found');
         }
 
-        // Check if a friend request has already been sent
-        const existingRequest = recipient.friendRequests.find(
-            (request) => request.userId.equals(new ObjectId(senderId))
-        );
+        const existingRequest = await notificationsCollection.findOne({
+            recipient: new ObjectId(recipientId),
+            sender: new ObjectId(senderId),
+            type: 'friend-request'
+        });
+
         if (existingRequest) {
             return res.status(400).send('Friend request already sent');
         }
 
-        // Add friend request to recipient
-        await collection.updateOne(
-            { _id: new ObjectId(recipientId) },
-            {
-                $push: {
-                    friendRequests: {
-                        userId: new ObjectId(senderId),
-                        status: 'pending'
-                    }
-                }
-            }
-        );
+        await notificationsCollection.insertOne({
+            recipient: new ObjectId(recipientId),
+            sender: new ObjectId(senderId),
+            type: 'friend-request',
+            status: 'pending',
+            createdAt: new Date()
+        });
 
         res.status(200).send('Friend request sent');
     } catch (error) {
@@ -271,21 +267,27 @@ const sendFriendRequest = async (req, res) => {
 const respondToFriendRequest = async (req, res) => {
     try {
         const recipientId = req.user.userId;
-        const { userId: senderId } = req.params;
+        const { notificationId } = req.params;
         const { status } = req.body; // 'accepted' or 'rejected'
 
         if (!['accepted', 'rejected'].includes(status)) {
             return res.status(400).send('Invalid status');
         }
 
-        // Remove the friend request
-        await collection.updateOne(
-            { _id: new ObjectId(recipientId) },
-            { $pull: { friendRequests: { userId: new ObjectId(senderId) } } }
+        const notification = await notificationsCollection.findOne({ _id: new ObjectId(notificationId) });
+
+        if (!notification || notification.recipient.toString() !== recipientId) {
+            return res.status(404).send('Notification not found or you are not the recipient');
+        }
+
+        const senderId = notification.sender;
+
+        await notificationsCollection.updateOne(
+            { _id: new ObjectId(notificationId) },
+            { $set: { status } }
         );
 
         if (status === 'accepted') {
-            // Add to friends list for both users
             await collection.updateOne(
                 { _id: new ObjectId(recipientId) },
                 { $addToSet: { friends: new ObjectId(senderId), following: new ObjectId(senderId) } }
@@ -301,62 +303,6 @@ const respondToFriendRequest = async (req, res) => {
         res.status(500).send(error.message);
     }
 };
-
-const getNotifications = async (req, res) => {
-    try {
-      const userId = req.user?.userId;
-      console.log('User ID:', userId);
-  
-      if (!userId) {
-        return res.status(400).send('User ID missing');
-      }
-  
-      let queryId;
-      try {
-        queryId = new ObjectId(userId);
-      } catch {
-        // if not a valid ObjectId, treat as string
-        queryId = userId;
-      }
-  
-      const user = await collection.findOne({ _id: queryId });
-      if (!user) {
-        return res.status(404).send('User not found');
-      }
-  
-      const notifications = await collection.aggregate([
-        { $match: { _id: queryId } },
-        { $unwind: '$friendRequests' },
-        { $match: { 'friendRequests.status': 'pending' } },
-        {
-          $lookup: {
-            from: 'users',
-            localField: 'friendRequests.userId',
-            foreignField: '_id',
-            as: 'senderInfo'
-          }
-        },
-        { $unwind: '$senderInfo' },
-        {
-          $project: {
-            _id: 0,
-            status: '$friendRequests.status',
-            sender: {
-              _id: '$senderInfo._id',
-              name: '$senderInfo.name',
-              email: '$senderInfo.email'
-            }
-          }
-        }
-      ]).toArray();
-  
-      res.status(200).send(notifications);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      res.status(500).send(error.message);
-    }
-  };
-
 
 const searchUsersByName = async (req, res) => {
     try {
@@ -388,6 +334,5 @@ module.exports = {
     setUserMood,
     sendFriendRequest,
     respondToFriendRequest,
-    getNotifications,
     searchUsersByName
 };
